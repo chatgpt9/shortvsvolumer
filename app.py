@@ -5,11 +5,9 @@ from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        # Get YouTube video URL from the form
-        youtube_url = request.form['youtube_url']
+@app.route('/process_video', methods=['GET'])
+def process_video():
+    youtube_url = request.args.get('video')
         try:
             # Download the YouTube video
             video = YouTube(youtube_url)
@@ -41,7 +39,7 @@ def index():
         except Exception as e:
             return str(e)
     else:
-        return render_template('index.html')
+        return render_template('index.html', video_url=output_path)
 
 if __name__ == '__main__':
     app.run()

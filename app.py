@@ -1,38 +1,47 @@
 import os
-import subprocess
-from flask import Flask, render_template
+from pytube import YouTube
+from moviepy.editor import VideoFileClip, concatenate_videoclips
+from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
+    if request.method == 'POST':
+        # Get YouTube video URL from the form
+        youtube_url = request.form['youtube_url']
+        try:
+            # Download the YouTube video
+            video = YouTube(youtube_url)
+            video_stream = video.streams.filter(progressive=True, file_extension='mp4').first()
+            video_stream.download('./videos', 'original')
 
-@app.route('/download')
-def download_video():
-    # YouTube video URL
-    youtube_url = 'https://www.youtube.com/watch?v=Ip1ne0FwiVU'
+            # Crop the video into two parts
+            original_path = './videos/original.mp4'
+            video_clip = VideoFileClip(original_path)
+            video_width = video_clip.size[0]
+            half_width = video_width // 2
+            left_clip = video_clip.crop(x1=0, y1=0, x2=half_width, y2=video_clip.size[1])
+            right_clip = video_clip.crop(x1=half_width, y1=0, x2=video_width, y2=video_clip.size[1])
 
-    # Download the YouTube video using youtube-dl
-    download_command = f'youtube-dl -f mp4 {youtube_url} -o video.mp4'
-    subprocess.call(download_command, shell=True)
+            # Merge the cropped clips
+            final_clip = concatenate_videoclips([left_clip, right_clip], method='compose')
 
-    # Crop the video
-    crop_command = 'ffmpeg -i video.mp4 -filter:v "crop=iw/2:ih:0:0" left.mp4'
-    subprocess.call(crop_command, shell=True)
-    crop_command = 'ffmpeg -i video.mp4 -filter:v "crop=iw/2:ih:ow/2:0" right.mp4'
-    subprocess.call(crop_command, shell=True)
+            # Set the output file path
+            output_path = './videos/final.mp4'
 
-    # Merge the cropped videos
-    merge_command = 'ffmpeg -i left.mp4 -i right.mp4 -filter_complex "vstack" final.mp4'
-    subprocess.call(merge_command, shell=True)
+            # Write the final video to the output file
+            final_clip.write_videofile(output_path, codec='libx264')
 
-    # Remove the temporary files
-    os.remove('video.mp4')
-    os.remove('left.mp4')
-    os.remove('right.mp4')
+            # Remove the original and cropped clips
+            os.remove(original_path)
 
-    return 'Video downloaded and processed successfully.'
+            # Render the index page with the final video URL
+            return render_template('index.html', video_url=output_path)
+        except Exception as e:
+            return str(e)
+    else:
+        return render_template('index.html')
 
 if __name__ == '__main__':
     app.run()

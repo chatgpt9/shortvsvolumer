@@ -2,3 +2,5 @@ gunicorn
 moviepy
 Flask
 pytube
+youtube-dl
+ffmpeg

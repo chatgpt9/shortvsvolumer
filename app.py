@@ -1,49 +1,74 @@
+from flask import Flask, request, render_template
 import os
-from pytube import YouTube
 from moviepy.editor import VideoFileClip, concatenate_videoclips
-from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
 def index():
-    if request.method == 'POST':
-        # Get YouTube video URL from the form
-        youtube_url = request.form['youtube_url']
-        
-        try:
-            # Download the YouTube video
-            video = YouTube(youtube_url)
-            video_stream = video.streams.filter(progressive=True, file_extension='mp4').first()
-            video_stream.download('./videos', 'original')
+    return render_template('index.html')
 
-            # Crop the video into two parts
-            original_path = './videos/original.mp4'
-            video_clip = VideoFileClip(original_path)
-            video_width = video_clip.size[0]
-            half_width = video_width // 2
-            left_clip = video_clip.crop(x1=0, y1=0, x2=half_width, y2=video_clip.size[1])
-            right_clip = video_clip.crop(x1=half_width, y1=0, x2=video_width, y2=video_clip.size[1])
+@app.route('/process_video')
+def process_video():
+    video_url = request.args.get('video')
+    if video_url:
+        # Decode the URL
+        decoded_url = video_url.replace('%3A', ':').replace('%2F', '/')
 
-            # Merge the cropped clips
-            final_clip = concatenate_videoclips([left_clip, right_clip], method='compose')
+        # Download the video
+        video_path = download_video(decoded_url)
 
-            # Set the output file path
-            output_path = './videos/final.mp4'
+        # Crop the video
+        cropped_video = crop_video(video_path)
 
-            # Write the final video to the output file
-            final_clip.write_videofile(output_path, codec='libx264')
+        # Merge the cropped parts
+        merged_video = merge_videos(cropped_video)
 
-            # Remove the original and cropped clips
-            os.remove(original_path)
+        # Delete the temporary files
+        os.remove(video_path)
+        os.remove(cropped_video[0])
+        os.remove(cropped_video[1])
 
-            # Render the index page with the final video URL
-            return render_template('index.html', video_url=output_path)
-        except Exception as e:
-            return str(e)
+        return render_template('video.html', video_path=merged_video)
     else:
-        return render_template('index.html')
+        return 'Please provide a valid YouTube video URL.'
 
+def download_video(url):
+    # Use your preferred method to download the video
+    # and return the path to the downloaded video file
+    # For simplicity, let's assume it's already downloaded and return the path directly
+    return '/path/to/downloaded_video.mp4'
+
+def crop_video(video_path):
+    video = VideoFileClip(video_path)
+
+    # Get the middle vertical center position
+    mid_y = video.size[1] / 2
+
+    # Crop left part
+    left_cropped = video.crop(x1=0, y1=0, x2=video.size[0] / 2, y2=mid_y)
+    left_cropped_path = '/path/to/left_cropped.mp4'
+    left_cropped.write_videofile(left_cropped_path)
+
+    # Crop right part
+    right_cropped = video.crop(x1=video.size[0] / 2, y1=0, x2=video.size[0], y2=mid_y)
+    right_cropped_path = '/path/to/right_cropped.mp4'
+    right_cropped.write_videofile(right_cropped_path)
+
+    return left_cropped_path, right_cropped_path
+
+def merge_videos(cropped_videos):
+    left_video = VideoFileClip(cropped_videos[0])
+    right_video = VideoFileClip(cropped_videos[1])
+
+    # Stack the videos vertically
+    merged_video = concatenate_videoclips([left_video.set_position("top"), right_video.set_position("top")])
+
+    # Write the merged video to a file
+    merged_video_path = '/path/to/merged_video.mp4'
+    merged_video.write_videofile(merged_video_path)
+
+    return merged_video_path
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)

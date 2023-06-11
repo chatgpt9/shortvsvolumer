@@ -1,14 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>YouTube Video Processing</title>
+    <title>YouTube Video Cropper</title>
 </head>
 <body>
-    <h1>YouTube Video Processing</h1>
-    <a href="/download">Download and Process Video</a>
-    <br>
-    <video width="640" height="480" controls>
-        <source src="/final.mp4" type="video/mp4">
-    </video>
+    <h1>YouTube Video Cropper</h1>
+    <form method="POST">
+        <label for="youtube_url">YouTube URL:</label>
+        <input type="text" name="youtube_url" required>
+        <button type="submit">Download & Crop</button>
+    </form>
+    {% if video_url %}
+        <video width="640" height="480" controls>
+            <source src="{{ video_url }}" type="video/mp4">
+        </video>
+    {% endif %}
 </body>
 </html>

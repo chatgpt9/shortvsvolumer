@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, send_file
 import urllib.parse
 import subprocess
 
@@ -27,7 +27,7 @@ def download():
     # Merge the cropped videos
     subprocess.call(['ffmpeg', '-i', 'left.mp4', '-i', 'right.mp4', '-filter_complex', '[0:v][1:v]vstack', 'final.mp4'])
 
-    return 'Video downloaded, cropped, and merged successfully.'
+    return send_file('final.mp4', mimetype='video/mp4')
 
 if __name__ == '__main__':
     app.run()

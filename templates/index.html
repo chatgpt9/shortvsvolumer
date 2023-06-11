@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YouTube Video Processing</title>
+</head>
+<body>
+    <h1>YouTube Video Processing</h1>
+    <form action="/process_video" method="get">
+        <label for="video">Enter YouTube video URL:</label>
+        <input type="text" id="video" name="video" placeholder="YouTube video URL">
+        <input type="submit" value="Process Video">
+    </form>
+
+    {% if final_video_path %}
+        <h2>Final Video</h2>
+        <video width="640" height="480" controls>
+            <source src="{{ final_video_path }}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    {% endif %}
+</body>
+</html>

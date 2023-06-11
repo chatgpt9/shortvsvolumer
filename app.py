@@ -1,4 +1,5 @@
 from flask import Flask, request, render_template
+import pytube
 import moviepy.editor as mp
 
 app = Flask(__name__)
@@ -10,9 +11,15 @@ def index():
 @app.route('/process_video', methods=['GET'])
 def process_video():
     video_url = request.args.get('video')
-    
-    # Download and crop the video
-    video = mp.VideoFileClip(video_url)
+
+    # Download the YouTube video using pytube
+    youtube = pytube.YouTube(video_url)
+    video = youtube.streams.filter(only_video=True).first()
+    video_file = f"static/{youtube.video_id}.mp4"
+    video.download(output_path="static", filename=youtube.video_id)
+
+    # Crop the video
+    video = mp.VideoFileClip(video_file)
     video_width, video_height = video.size
     
     # Crop into two parts from the middle vertical center
@@ -24,9 +31,9 @@ def process_video():
     final_video = mp.concatenate_videoclips([left_part, right_part])
     
     # Save the final video as a file
-    final_video_path = 'static/final_video.mp4'
+    final_video_path = f'static/final_{youtube.video_id}.mp4'
     final_video.write_videofile(final_video_path)
-    
+
     return render_template('index.html', final_video_path=final_video_path)
 
 if __name__ == '__main__':

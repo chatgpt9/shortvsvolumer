@@ -1,19 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>YouTube Video Cropper</title>
+    <title>Final Video</title>
 </head>
 <body>
-    <h1>YouTube Video Cropper</h1>
-<form action="/process_video" method="GET">
-    <label for="video">YouTube URL:</label>
-    <input type="text" name="video" required>
-    <button type="submit">Download & Crop</button>
-</form>
-    {% if video_url %}
-        <video width="640" height="480" controls>
-            <source src="{{ video_url }}" type="video/mp4">
-        </video>
-    {% endif %}
+    <h1>Final Video</h1>
+    <video width="800" height="600" controls>
+        <source src="{{ video_path }}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
 </body>
 </html>

@@ -5,11 +5,11 @@
 </head>
 <body>
     <h1>YouTube Video Cropper</h1>
-    <form method="POST">
-        <label for="youtube_url">YouTube URL:</label>
-        <input type="text" name="youtube_url" required>
-        <button type="submit">Download & Crop</button>
-    </form>
+<form action="/process_video" method="GET">
+    <label for="video">YouTube URL:</label>
+    <input type="text" name="video" required>
+    <button type="submit">Download & Crop</button>
+</form>
     {% if video_url %}
         <video width="640" height="480" controls>
             <source src="{{ video_url }}" type="video/mp4">

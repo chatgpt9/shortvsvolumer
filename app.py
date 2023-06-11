@@ -1,45 +1,38 @@
-from flask import Flask, request, render_template
-import pytube
-import moviepy.editor as mp
+import os
+import subprocess
+from flask import Flask, render_template
 
 app = Flask(__name__)
 
-@app.route('/', methods=['GET'])
+@app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/process_video', methods=['GET'])
-def process_video():
-    video_url = request.args.get('video')
+@app.route('/download')
+def download_video():
+    # YouTube video URL
+    youtube_url = 'https://www.youtube.com/watch?v=Ip1ne0FwiVU'
 
-    # Download the YouTube video using pytube
-    youtube = pytube.YouTube(video_url)
+    # Download the YouTube video using youtube-dl
+    download_command = f'youtube-dl -f mp4 {youtube_url} -o video.mp4'
+    subprocess.call(download_command, shell=True)
 
-    def download_complete(stream, file_path):
-        # Crop the video
-        video = mp.VideoFileClip(file_path)
-        video_width, video_height = video.size
-        
-        # Crop into two parts from the middle vertical center
-        half_width = video_width // 2
-        left_part = video.crop(x1=0, y1=0, x2=half_width, y2=video_height)
-        right_part = video.crop(x1=half_width, y1=0, x2=video_width, y2=video_height)
-        
-        # Merge the cropped parts
-        final_video = mp.concatenate_videoclips([left_part, right_part])
-        
-        # Save the final video as a file
-        final_video_path = f'static/final_{youtube.video_id}.mp4'
-        final_video.write_videofile(final_video_path)
+    # Crop the video
+    crop_command = 'ffmpeg -i video.mp4 -filter:v "crop=iw/2:ih:0:0" left.mp4'
+    subprocess.call(crop_command, shell=True)
+    crop_command = 'ffmpeg -i video.mp4 -filter:v "crop=iw/2:ih:ow/2:0" right.mp4'
+    subprocess.call(crop_command, shell=True)
 
-        # Render the template with the final video path
-        return render_template('index.html', final_video_path=final_video_path)
+    # Merge the cropped videos
+    merge_command = 'ffmpeg -i left.mp4 -i right.mp4 -filter_complex "vstack" final.mp4'
+    subprocess.call(merge_command, shell=True)
 
-    video = youtube.streams.filter(only_video=True).first()
-    video_file = f"static/{youtube.video_id}.mp4"
-    video.download(output_path="static", filename=youtube.video_id, on_complete_callback=download_complete)
+    # Remove the temporary files
+    os.remove('video.mp4')
+    os.remove('left.mp4')
+    os.remove('right.mp4')
 
-    return 'Video download in progress...'
+    return 'Video downloaded and processed successfully.'
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()

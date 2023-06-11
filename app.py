@@ -14,27 +14,32 @@ def process_video():
 
     # Download the YouTube video using pytube
     youtube = pytube.YouTube(video_url)
+
+    def download_complete(stream, file_path):
+        # Crop the video
+        video = mp.VideoFileClip(file_path)
+        video_width, video_height = video.size
+        
+        # Crop into two parts from the middle vertical center
+        half_width = video_width // 2
+        left_part = video.crop(x1=0, y1=0, x2=half_width, y2=video_height)
+        right_part = video.crop(x1=half_width, y1=0, x2=video_width, y2=video_height)
+        
+        # Merge the cropped parts
+        final_video = mp.concatenate_videoclips([left_part, right_part])
+        
+        # Save the final video as a file
+        final_video_path = f'static/final_{youtube.video_id}.mp4'
+        final_video.write_videofile(final_video_path)
+
+        # Render the template with the final video path
+        return render_template('index.html', final_video_path=final_video_path)
+
     video = youtube.streams.filter(only_video=True).first()
     video_file = f"static/{youtube.video_id}.mp4"
-    video.download(output_path="static", filename=youtube.video_id)
+    video.download(output_path="static", filename=youtube.video_id, on_complete_callback=download_complete)
 
-    # Crop the video
-    video = mp.VideoFileClip(video_file)
-    video_width, video_height = video.size
-    
-    # Crop into two parts from the middle vertical center
-    half_width = video_width // 2
-    left_part = video.crop(x1=0, y1=0, x2=half_width, y2=video_height)
-    right_part = video.crop(x1=half_width, y1=0, x2=video_width, y2=video_height)
-    
-    # Merge the cropped parts
-    final_video = mp.concatenate_videoclips([left_part, right_part])
-    
-    # Save the final video as a file
-    final_video_path = f'static/final_{youtube.video_id}.mp4'
-    final_video.write_videofile(final_video_path)
-
-    return render_template('index.html', final_video_path=final_video_path)
+    return 'Video download in progress...'
 
 if __name__ == '__main__':
     app.run(debug=True)
